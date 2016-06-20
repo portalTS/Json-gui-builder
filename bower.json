@@ -23,6 +23,7 @@
   ],
   "dependencies": {
     "ng-file-upload": "~9.0.16",
-    "angular-route": "^1.5.3"
+    "angular-route": "^1.5.3",
+    "bootstrap": "~3.3.6"
   }
 }

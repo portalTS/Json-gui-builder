@@ -1,1 +1,11 @@
-<parameter-dir param-object="paramObject" dependencies-arr="dependencies" category-arr="parametersCategories"></parameter-dir>
+<div class="container">
+	<div class="col-xs-12 title-container">
+		<button type="button" class="btn btn-danger back-button" ng-click="goBack()">Back</button>
+		<p class="title">{{paramObject.displayName}} parameter configuration</p>
+	</div>
+</div>
+<div class="container" id="generic-container">
+  <div class="row">
+    <parameter-dir param-object="paramObject" dependencies-arr="dependencies" category-arr="parametersCategories"></parameter-dir>
+  </div>
+</div>

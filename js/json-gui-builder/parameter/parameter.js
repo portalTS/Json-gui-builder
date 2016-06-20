@@ -1,60 +1,63 @@
-builderModule.directive('parameterDir', ['$location', 'dataTransfert', function($location, dataTransfert){
-	// Runs during compile
+builderModule.directive('parameterDir', ['$location','$timeout', 'dataTransfert', function($location,$timeout, dataTransfert){
 	return {
-		// name: '',
-		// priority: 1,
-		// terminal: true,
 		scope: {
 			paramObject: '=',
 			dependenciesArr: '=',
 			categoryArr: '='
-		}, // {} = isolate, true = child, false/undefined = no change
-		// controller: function($scope, $element, $attrs, $transclude) {},
-		// require: 'ngModel', // Array = multiple requires, ? = optional, ^ = check parent elements
-		restrict: 'E', // E = Element, A = Attribute, C = Class, M = Comment
-		//template: '<p>Hello</p>',
+		},
+		restrict: 'E',
 		templateUrl: 'js/json-gui-builder/parameter/parameter.html',
-		// replace: true,
-		// transclude: true,
-		// compile: function(tElement, tAttrs, function transclude(function(scope, cloneLinkingFn){ return function linking(scope, elm, attrs){}})),
 		link: function(scope, iElm, iAttrs, controller) {
+			//array with the types for which there is no validation
+			scope.noValidationArray = ["fileupload", "domains", "text"];
 
-			//INITIALISATION//////////////////////////////////////////////////////////////////////////////////////
+			//INITIALIZATION//////////////////////////////////////////////////////////////////////////////////////
 
-			//Main fields initialisation
+			//Main fields initialization
 			if (scope.paramObject.parameterType != "") {
 				scope.dataType = scope.paramObject.parameterType;
 			}
 			if (scope.paramObject.parameterCategory != undefined) {
-				scope.paramObject.parameterCategory = scope.paramObject.parameterCategory.toString();
-			}
-			if (scope.paramObject.expressionsArr == undefined) {
-				scope.paramObject.expressionsArr = [];
+				scope.parameterCategory = scope.paramObject.parameterCategory.toString();
 			}
 
-			//Specific fields initialisation
+			var exprs = dataTransfert.getExpressions();
+			if (exprs!=undefined && exprs.length!=0) {
+				scope.paramObject.expressions = exprs;
+			}
+
+			var watcher = null;
+			var addWatchForDomains = function() {
+				watcher = scope.$watch('paramObject', function() {
+							scope.paramObject.redraw();
+							// scope.parameter.evaluate();
+					}, true);
+			};
+			var removeWatchForDomains = function() {
+				if(watcher!=null) watcher();//unbind
+			}
+			//Specific fields initialization
 			switch (scope.paramObject.parameterType)
 			{
 				case 'fileupload':
 					var unit = scope.paramObject.maxSize.slice(-2, scope.paramObject.maxSize.length);
 					var value = scope.paramObject.maxSize.slice(0, scope.paramObject.maxSize.length-2)
-					scope.maxSize = {maxSizeUnit: unit, maxSizeValue: value};
+					scope.maxSize = {maxSizeUnit: unit.toLowerCase(), maxSizeValue: value};
 					break;
 				case 'datetime':
 					scope.hasDate = scope.paramObject.hasDate.toString();
 					scope.hasTime = scope.paramObject.hasTime.toString();
-					console.log(scope.hasDate);
-					console.log(scope.paramObject.hasDate);
 					break;
 				case 'domains':
 					scope.onlyNested = scope.paramObject.onlyNested.toString();
+					addWatchForDomains();
 					break;
 				default:
 					break;
 			}
 
 			//Reset isValid property for the default value (Rebuild with save function)
-			scope.paramObject.isValid = "return function v(parameters, dependencies){var retObject = {};retObject.valid= true;retObject.message='';return retObject;}";
+			scope.paramObject.isValid = "";
 
 			//REAL TIME UPDATE FUNCTIONS////////////////////////////////////////////////////////////////////////////
 
@@ -73,10 +76,18 @@ builderModule.directive('parameterDir', ['$location', 'dataTransfert', function(
 						delete scope.paramObject.hasTime;
 						break;
 					case 'domains':
-						delete scope.paramObject.centerCoords;
+						delete scope.paramObject.center;
 						delete scope.paramObject.mapZoom;
 						delete scope.paramObject.onlyNested;
-						delete  scope.paramObject.maxDomains;
+						delete scope.paramObject.maxDomains;
+						delete scope.paramObject.maxMarkers;
+						delete scope.paramObject.drawMarkers;
+						delete scope.paramObject.drawDomains;
+						delete scope.paramObject.required.domains;
+					  delete scope.paramObject.required.markers;
+						delete scope.paramObject.allowMarkersOutDomains;
+						scope.paramObject.required = true;
+						removeWatchForDomains();
 						break;
 					case 'select':
 						delete scope.paramObject.values;
@@ -90,6 +101,7 @@ builderModule.directive('parameterDir', ['$location', 'dataTransfert', function(
 				switch (scope.dataType)
 				{
 					case 'fileupload':
+						scope.paramObject.value = [];
 						scope.paramObject.maxSize = "3kb";
 						scope.maxSize = {maxSizeUnit: "kb", maxSizeValue: '3'};
 						scope.paramObject.maxUpload = 2;
@@ -102,11 +114,20 @@ builderModule.directive('parameterDir', ['$location', 'dataTransfert', function(
 						scope.hasTime = "true";
 						break;
 					case 'domains':
-						scope.paramObject.centerCoords = {"lat":44.496,"long":8.9209};
+					scope.paramObject.value = {domains:{}, markers:{}};
+						scope.paramObject.center = {"lat":44.496,"long":8.9209};
 						scope.paramObject.mapZoom = 8;
 						scope.paramObject.onlyNested = true;
 						scope.onlyNested = "true";
-						scope.paramObject.maxDomains = 4;
+						scope.paramObject.maxDomains = 3;
+						scope.paramObject.maxMarkers = 3;
+						scope.paramObject.drawMarkers = true;
+					  scope.paramObject.drawDomains = true;
+						scope.paramObject.required = {};
+					  scope.paramObject.required.domains = true;
+						scope.paramObject.required.markers = true;
+						scope.paramObject.allowMarkersOutDomains = true;
+						addWatchForDomains();
 						break;
 					case 'select':
 						scope.paramObject.values = [];
@@ -117,36 +138,24 @@ builderModule.directive('parameterDir', ['$location', 'dataTransfert', function(
 			}
 
 			//fileupload specific field watcher
-			scope.$watch('maxSize', function(){
+			scope.$watch('maxSize', function() {
 				if (scope.maxSize != undefined) {
 					scope.paramObject.maxSize = scope.maxSize.maxSizeValue.concat(scope.maxSize.maxSizeUnit);
 				}
 			}, true)
 
-			//datetime specific fields
-			scope.changeDate = function(value){
+			scope.changeBooleanValue = function(value, property){
 				if (value == "true") {
-					scope.paramObject.hasDate = true;
+					scope.paramObject[property] = true;
 				} else {
-					scope.paramObject.hasDate = false;
+					scope.paramObject[property] = false;
 				}
 			}
 
-			scope.changeTime = function(value){
-				if (value == "true") {
-					scope.paramObject.hasTime = true;
-				} else {
-					scope.paramObject.hasTime = false;
-				}
-			}
+			scope.boolToStr = function(arg) {return arg ? 'True' : 'False'};
 
-			//Domains specific field
-			scope.changeOnlyNested = function(value){
-				if (value == "true") {
-					scope.paramObject.onlyNested = true;
-				} else {
-					scope.paramObject.onlyNested = false;
-				}
+			scope.convertToInteger = function(property){
+				scope.paramObject[property] = parseInt(scope.paramObject[property]);
 			}
 
 			//Select type function
@@ -156,6 +165,8 @@ builderModule.directive('parameterDir', ['$location', 'dataTransfert', function(
 
 			scope.delOption = function(index) {
 				scope.paramObject.values.splice(index, 1);
+				if(scope.paramObject.value==index)
+					scope.paramObject.value = 0;
 			}
 
 			//DEPENDENCIES//////////////////////////////////////////////////////////////////////////////////////
@@ -163,38 +174,34 @@ builderModule.directive('parameterDir', ['$location', 'dataTransfert', function(
 			//Look for the display name in the dependencies array given to the directive
 			scope.getDpName = function(varName) {
 				for (var i = 0; i < scope.dependenciesArr.length; i++) {
-					if (scope.dependenciesArr[i].varName == varName) {
-						return scope.dependenciesArr[i].name;
+					if (scope.dependenciesArr[i].dbName == varName) {
+						return scope.dependenciesArr[i].displayName;
 					}
 				}
 			}
 
 			//Initialisation of the selected dependencies array with already selected dependencies
-			scope.selectedDependencies = [];//array of {name: "string", varName: "string"}
-			for (var i = 0; i < scope.paramObject.dependenciesNames.length; i++) {
-				scope.selectedDependencies.push({
-					name: scope.getDpName(scope.paramObject.dependenciesNames[i]),
-					varName: scope.paramObject.dependenciesNames[i]
-				});
-			}
+			$timeout(function(){
+				scope.selectedDependencies = dataTransfert.getSelectedDepencies();
+			} , 0);
 
 			scope.addDependencie = function(string) {
 				scope.checkDependencie(string);
 				if (scope.dependencieError == 0) {
 					scope.selectedDependencies.push(scope.dependenciesArr[scope.depenInd]);
-					scope.paramObject.dependenciesNames.push(scope.dependenciesArr[scope.depenInd].varName)
+					scope.paramObject.dependencies.push(scope.dependenciesArr[scope.depenInd].dbName)
 				}
 				scope.newDepen = "";
 			}
 
 			scope.delDependencie = function(index, string) {
 				scope.selectedDependencies.splice(index, 1);
-				for (i = 0; i < scope.paramObject.dependenciesNames.length; i++) {
-					if (scope.paramObject.dependenciesNames[i] == string) {
+				for (i = 0; i < scope.paramObject.dependencies.length; i++) {
+					if (scope.paramObject.dependencies[i] == string) {
 						index = i;
 					}
 				}
-				scope.paramObject.dependenciesNames.splice(index, 1);
+				scope.paramObject.dependencies.splice(index, 1);
 			}
 
 			//CHECK FUNCTIONS////////////////////////////////////////////////////////////////////////////////////
@@ -219,10 +226,21 @@ builderModule.directive('parameterDir', ['$location', 'dataTransfert', function(
 			}
 
 			scope.isPositive = function(value) {
-				if (typeof string == undefined) {
-					return false;
+				if (typeof value == undefined || isNaN(value)) {
+					return true;
 				}
 				if (value < 0) {
+					return true;
+				} else {
+					return false;
+				}
+			}
+
+			scope.isStrictlyPositive = function(value) {
+				if (typeof value == undefined || isNaN(value)) {
+					return true;
+				}
+				if (value <= 0) {
 					return true;
 				} else {
 					return false;
@@ -243,18 +261,18 @@ builderModule.directive('parameterDir', ['$location', 'dataTransfert', function(
 				scope.alreadyAdd = 0;
 				//firt check if the string is well a dependencie
 				for (i = 0; i < scope.dependenciesArr.length; i++) {
-					if (scope.dependenciesArr[i].name == string) {
+					if (scope.dependenciesArr[i].displayName == string) {
 						scope.isADependencie = 1;
 						scope.depenInd = i;
-					} 
+					}
 				}
 				if (scope.isADependencie != 1) {
 					scope.dependencieError = 1;
 					return;
 				}
 				//Second check if the dependencie is not already selected
-				for (i = 0; i < scope.paramObject.dependenciesNames.length; i++) {
-					if (scope.paramObject.dependenciesNames[i] == scope.dependenciesArr[scope.depenInd].varName) {
+				for (i = 0; i < scope.paramObject.dependencies.length; i++) {
+					if (scope.paramObject.dependencies[i] == scope.dependenciesArr[scope.depenInd].dbName) {
 						scope.alreadyAdd = 1;
 					}
 				}
@@ -281,75 +299,117 @@ builderModule.directive('parameterDir', ['$location', 'dataTransfert', function(
 					if (scope.containsBlanks(scope.paramObject.namelistName)) valid = false;
 					scope.errorArr.nameList = false;
 				}
-				if (scope.paramObject.parameterCategory == "" || scope.paramObject.parameterCategory == undefined) {
+				if (scope.parameterCategory == "" || scope.parameterCategory == undefined) {
 					scope.errorArr.category = true;
 					valid = false;
 				} else {
 					scope.errorArr.category = false;
 				}
 				//check specific values
+
 				switch (scope.paramObject.parameterType)
 				{
 					case 'fileupload':
-						if (scope.isPositive(scope.maxSize.value)) valid = false;
-						if (scope.isPositive(scope.paramObject.maxUpload)) valid = false;
-						if (scope.isPositive(scope.paramObject.minUpload)) valid = false;
+						scope.tooManyFiles = false;
+						if (scope.isStrictlyPositive(scope.maxSize.maxSizeValue)) valid = false;
+						if (scope.isStrictlyPositive(scope.paramObject.maxUpload)) valid = false;
+						if (scope.isStrictlyPositive(scope.paramObject.minUpload)) valid = false;
 						if (scope.isLessThan(scope.paramObject.maxUpload, scope.paramObject.minUpload)) valid = false;
+						if (scope.isLessThan(scope.paramObject.maxUpload, scope.paramObject.value.length)){
+							valid = false;
+							scope.tooManyFiles = true;
+						}
 					break;
 					case 'datetime':
 						if (scope.dateOrTime()) valid = false;
 					break;
 					case 'domains':
-						if (scope.isPositive(paramObject.maxDomains)) valid = false;
+						if (scope.isPositive(scope.paramObject.maxDomains)) valid = false;
+						if (scope.isPositive(scope.paramObject.maxMarkers)) valid = false;
 					break;
+					case 'select':
+						scope.selectNotValid = false;
+						scope.optionNotValid = false;
+						if(scope.paramObject.values.length==0) {
+							valid = false;
+							scope.selectNotValid = true;
+						}
+						for(var i=0;i<scope.paramObject.values.length;i++){
+							if(scope.paramObject.values[i].name=="") {
+								valid = false;
+								scope.optionNotValid = true;
+								break;
+							}
+						}
 					default:
 					break;
 				}
 				return valid;
   			}
 
-			//SAVE FONCTION///////////////////////////////////////////////////////////////////////////////////
+			//SAVE FUNCTION///////////////////////////////////////////////////////////////////////////////////
 
 			scope.goToExpression = function() {
-				dataTransfert.setDependencies(scope.selectedDependencies);
+				dataTransfert.setExpressions(scope.paramObject.expressions);
+				dataTransfert.setSelectedDependencies(scope.selectedDependencies);
     			$location.path('/portalModels/expressions');
   			}
 
   			//Build the isValid property
-  			scope.buildIsVaslid = function() {
-  				if (scope.paramObject.expressionsArr.length != 0) {
-  					var res = "return function v(parameters, dependencies){var retObject = {};";
- 	 				for (var i = 0; i < scope.paramObject.expressionsArr.length; i++) {
-  						if(i!=0) res += "else ";
-  						res += "if(";
-  						if (scope.paramObject.expressionsArr[i].val1 == scope.paramObject.dbName) {
-  							res += "parameters.value";
-  						} else {
- 	 						res += "dependencies['"+scope.paramObject.expressionsArr[i].val1+"'].value";
-  						}
-  						res += ""+scope.paramObject.expressionsArr[i].operator+"";
-  						var val2name = scope.getDpName(scope.paramObject.expressionsArr[i].val2);
-  						if ( val2name == undefined) {
-  							res += ""+scope.paramObject.expressionsArr[i].val2+")";
-	  					} else {
-  							res += "dependencies['"+scope.paramObject.expressionsArr[i].val2+"'].value)";
-  						}
-  						res += "{retObject.valid= false;retObject.message = "+scope.paramObject.expressionsArr[i].errorMsg+";}";
+  			scope.buildIsValid = function() {
+					var res = "";
+					var expression;
+  				if (scope.paramObject.expressions!=undefined && scope.paramObject.expressions.length != 0) {
+  					// res = "return function v(parameters, dependencies){var retObject = {};";
+ 	 				for (var i=0;i<scope.paramObject.expressions.length;i++) {
+							expression = scope.paramObject.expressions[i];
+  						if(i!=0) res += " else ";
+							var isStatic, condition;
+							for(var j=0;j<expression.conditions.length;j++) {
+								if(j!=0) res+=" else ";
+								res += " if(";
+
+								condition = expression.conditions[j];
+								isStatic = condition.val2.hasOwnProperty("isStatic");
+								if(!isStatic) res += "dependencies['"+condition.val2.dbName+"']!=undefined && ";
+								//val1
+								if (condition.val1.dbName == scope.paramObject.dbName) {
+	  							res += "parameter.value";
+	  						} else {
+									res += "dependencies['"+condition.val1.dbName+"']!=undefined && ";
+									res += "dependencies['"+condition.val1.dbName+"'].value";
+								}
+								//operator
+								res += ""+condition.operator+"";
+								if(isStatic) {
+									if(condition.val2.parameterType=="datetime"){
+										res+= "moment('"+condition.val2.value+"').toDate();"
+									}
+									else res+= condition.val2.value;
+								}
+								else {
+									res += "dependencies['"+condition.val2.dbName+"'].value";
+								}
+								res+= ") {retObject.valid= false;retObject.message = '"+expression.message+"';}";
+							}
+
   					}
-  					res += "else {retObject.valid= true;retObject.message='';}return retObject;}";
-	  				scope.paramObject.isValid = res;
   				}
+					scope.paramObject.isValid = res;
 			}
 
 			scope.saveParameter = function() {
 				if (scope.checkSetting()) {
-					scope.buildIsVaslid();
+					scope.buildIsValid();
+					 if(scope.noValidationArray.indexOf(scope.paramObject.parameterType)> -1){
+						 delete scope.paramObject.expressions;
+						 scope.paramObject.isValid = "";
+					 }
+					 scope.paramObject.parameterCategory = parseInt(scope.parameterCategory);
 					dataTransfert.updateDataWithCurrentParam(scope.paramObject);
-					$location.path('/portalModels/true');
+					// $location.path('/portalModels');
 				}
 			}
-
-			console.log(scope.paramObject);
 		}
 	};
 }]);

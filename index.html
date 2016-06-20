@@ -1,7 +1,6 @@
 <!doctype html>
-<html lang="eng" ng-app="app">
+<html lang="en" ng-app="app">
     <head>
-        <meta charset="UTF-8">
         <script src="bower_components/angular/angular.min.js"></script>
         <script src="bower_components/jquery/dist/jquery.min.js"></script>
         <script src="bower_components/angular-route/angular-route.min.js"></script>
@@ -15,43 +14,25 @@
 
 
         <script src="js/mainController.js"></script>
-        <script src="js/directives.js"></script>
-        <script src="js/directives/integer/integer.js"></script>
-        <script src="js/directives/float/float.js"></script>
-        <script src="js/directives/datetime/datetime.js"></script>
-        <script src="js/directives/select/select.js"></script>
-        <script src="js/directives/text/text.js"></script>
-        <script src="js/directives/fileupload/fileupload.js"></script>
 
-        <script src="js/directives/domains/domains.js"></script>
-        <script src="js/directives/model/model.js"></script>
+
+        <script src="json-gui-lib/json-gui.js"></script>
+        <link rel="stylesheet" href="json-gui-lib/json-gui.css"/>
+        <link rel="stylesheet" href="css/style.css"/>
 
         <script src="js/json-gui-builder/js-gui-builder-dir.js"></script>
-        <script src="js/json-gui-builder/expressionList/expressionList.js"></script>
         <script src="js/json-gui-builder/expression/expression.js"></script>
         <script src="js/json-gui-builder/parameterList/parameterList.js"></script>
         <script src="js/json-gui-builder/parameter/parameter.js"></script>
 
         <link rel="stylesheet" href="bower_components/bootstrap/dist/css/bootstrap.css"/>
-        <link rel="stylesheet" href="js/directives/domains/domains.css"/>
-        <link rel="stylesheet" href="js/directives/datetime/datetime.css"/>
-        <link rel="stylesheet" href="js/directives/fileupload/fileupload.css"/>
-        <link rel="stylesheet" href="js/directives/model/model.css"/>
 
-        <link rel="stylesheet" href="css/directives/parameters.css"/>
     </head>
     <body>
         <!--<div ng-controller="modelController">
             <model model-data="data"></model>
         </div>-->
 
-        <div ng-view></div>
-        
-        <div>
-        <p>Ce texte est généré pas la directive</p>
-        <p>La valeur de l'attribut 1 est: Exemple1</p>
-        <p>La valeur de l'attribut 2 est: Exemple2</p>
-        </div>
-
+        <div ng-view id="app-container"></div>
     </body>
 </html>

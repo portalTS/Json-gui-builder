@@ -7,9 +7,8 @@ app.run(function(){
 app.controller('modelController', function($scope, $timeout) {
     $scope.parseModelFromJson = function(url) {
 
-        $.getJSON(url, function(data) {         
+        $.getJSON(url, function(data) {
             $scope.data = data;
-            console.log($scope.data);//console.log(scope);
         });
     }
     $scope.data = $scope.parseModelFromJson("json/wrf-arw.json");
@@ -18,21 +17,19 @@ app.controller('modelController', function($scope, $timeout) {
 app.controller('paramListControler', ['$scope', '$routeParams', '$http','dataTransfert', function($scope, $routeParams, $http, dataTransfert){
 
   $scope.parseParamFromJson = function(url) {
-
     $.getJSON(url, function(data) {
       $scope.data = data;
     });
-  }  
-  
-  if ($routeParams.back == "true") {
-    $scope.data = dataTransfert.getData();
-  } else {
-    $scope.parseParamFromJson("json/wrf-arw.json");
   }
+  dataTransfert.deleteCurrentParam();
+  dataTransfert.setExpressions(new Array());
+    $scope.data = dataTransfert.getData();
+    console.log($scope.data);
+    if( Object.keys($scope.data).length == 0)
+      $scope.parseParamFromJson("json/wrf-arw.json");
 
   $scope.saveOnJson = function() {
     //var jsonData = angular.toJson($scope.data, true);
-    //console.log(jsonData);
     //$http.post("http://localhost/JSONreception/JSONreception.php", jsonData).error(function(status){console.log(status)});;
     $http({method: 'POST', url: 'http://localhost/JSONreception/JSONreception.php', data: $scope.data}).
         then(function(response) {
@@ -46,21 +43,68 @@ app.controller('paramListControler', ['$scope', '$routeParams', '$http','dataTra
 
 }]);
 
-app.controller('paramController', function($scope, dataTransfert){
-
+app.controller('paramController', function($scope, $location, dataTransfert){
 	$scope.parametersCategories = dataTransfert.getCategories();
-
   $scope.paramObject = dataTransfert.getCurrentParamObject();
-
   $scope.dependencies = dataTransfert.getDependencies();
+
+  $scope.goBack = function() {
+    $location.path("/portalModels");
+  }
+  if(Object.keys($scope.paramObject)==0)
+    $scope.goBack();
+  // $scope.paramObject
 });
 
-app.controller('expreController', function($scope, dataTransfert){
-  
+
+app.controller('expreController', function($scope, $location, dataTransfert) {
+
+  $scope.eval = [];
   $scope.currentParam = dataTransfert.getCurrentParamName();
+  if($scope.currentParam.name==undefined)
+    $location.path("/portalModels");
+  $scope.expressions = dataTransfert.getExpressions();
+  if($scope.expressions ==undefined) $scope.expressions = [];
+  else {
+    for(var i=0;i<$scope.expressions.length;i++)
+      $scope.eval.push({evaluate:undefined});
+  }
+  $scope.dependenciesArr = dataTransfert.getSelectedDependencies();
 
-  $scope.dependencies = dataTransfert.getSelectedDepencies();
+  $scope.goBack = function() {
+    dataTransfert.setExpressions(new Array());
+    $location.path("/portalModels/parameter");
+  }
 
-  $scope.epressions = dataTransfert.getExpressions();
-  
+  //ADD & DELETE FUNCTIONS///////////////////////////////////////////////////////////////////////////////////////////////////
+  $scope.addExpression = function() {
+    $scope.expressions.push({conditions:[], message:""});
+    $scope.eval.push({evaluate:undefined});
+  }
+
+  $scope.deleteExpression = function(index) {
+    $scope.expressions.splice(index, 1);
+    $scope.eval.splice(index, 1);
+    $scope.errorArr.splice(index, 1);
+  }
+
+  //ERROR MANAGEMENT FUNCTIONS///////////////////////////////////////////////////////////////////////////////////////////////
+
+  $scope.errorArr = [];
+
+  $scope.saveExpressions = function() {
+    var ok = true;
+    for (var i = 0; i < $scope.expressions.length; i++) {
+       ok = ok && $scope.eval[i].evaluate();
+    }
+    if (ok) {
+      dataTransfert.setExpressions($scope.expressions);
+      $location.path('/portalModels/parameter');
+    }
+  }
+
+
+
+
+
 });

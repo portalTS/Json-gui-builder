@@ -1,38 +1,57 @@
-<div class="container">
-	<form id="expreForm">
-		<div class="form-group col-xs-12">
-			<div class="col-xs-5" ng-class="{'has-error': errorArr.emptyVal1}">
-    			<select form="expreForm" class="form-control" ng-options="val.name for val in selectValArr" ng-model="val1Selected" ng-change="changeVal1()">
-    				<option value="">Choose value 1</option>
-        			<!--<option ng-repeat="val in selectValArr" value="{{ val }}">{{ val.name }}</option>-->
-    			</select>
-			</div><!-- /.col-xs-4 -->
-			<div class="col-xs-2">
-    			<select form="expreForm" class="form-control" ng-model="selectedExpre.operator">
-        			<option ng-repeat="operatorSelect in operators" value="{{ operatorSelect }}">{{ operatorSelect }}</option>
-    			</select>
-    		</div><!-- /.col-xs-4 -->
-    		<div class="col-xs-5">
-    			<div class="input-group" ng-class="{'has-error': errorArr.emptyVal2}">
-      				<div class="input-group-btn">
-        				<button type="button" class="btn btn-default dropdown-toggle" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{ btnDisplay }} <span class="caret"></span></button>
-        				<ul class="dropdown-menu">
-        					<li ng-click="btnManager('Enter a value', '')"><a href="">Enter a value</a></li>
-        					<li role="separator" class="divider"></li>
-        					<li ng-repeat="dependencie in dependenciesArr | orderBy: 'name'" value="{{ dependencie.varName }}" ng-click="btnManager('Dependencie',dependencie)"><a href="">{{ dependencie.name }}</a></li>
-        				</ul>
-      				</div><!-- /btn-group -->
-      				<input type="text" class="form-control" ng-disabled="val2!=''" placeholder="{{ val2.name }}" ng-model='val2Wr' ng-change="changeVal2()">
-    			</div><!-- /input-group -->
-  			</div><!-- /.col-xs-4 -->
-    	</div><!--Advertising message -->
-    	<div class="form-group col-xs-12" ng-class="{'has-error': errorArr.emptyMsg}">
-    		<textarea class="form-control" name="advertise" id="errorMSG" rows="5" placeholder="Advertising message" ng-model="selectedExpre.errorMsg"></textarea>
-    	</div><!-- / Advertising message -->
-        <div class="form-group" ng-class="{'has-error': errorArr.emptyVal1 || errorArr.emptyVal2 || errorArr.emptyMsg}"><!-- Display warning message -->
-            <span class="help-block" ng-if="errorArr.emptyVal1">The value 1 is missing !</span>
-            <span class="help-block" ng-if="errorArr.emptyVal2">The value 2 is missing !</span>
-            <span class="help-block" ng-if="errorArr.emptyMsg">The advertising message is missing !</span>
-        </div><!--/ Display warning message -->
-	</form>
+<form id="expreForm">
+
+
+
+<div ng-repeat="condition in expression.conditions track by $index">
+	<div class="form-group row">
+		<div class="col-xs-4" ng-class="{'has-error': errors.conditions[$index].val1}">
+			<select form="expreForm" class="form-control" ng-options="val.dbName as val.displayName for val in selectValArr" ng-model="value1[$index]" ng-change="changeVal1($index)">
+				<option value="">Choose value</option>
+			</select>
+			<span class="help-block" ng-if="errors.conditions[$index].val1">This field is required</span>
+		</div><!-- /.col-xs-4 -->
+
+
+		<div class="col-xs-2">
+			<select form="expreForm" class="form-control" ng-model="condition.operator">
+				<option ng-repeat="operator in operators[$index]" value="{{ operator }}">{{operator}}</option>
+			</select>
+		</div><!-- /.col-xs-4 -->
+
+		<div class="col-xs-4">
+			<div class="" ng-class="{'has-error': errors.conditions[$index].val2}">
+				<div id="button-container">
+					<button type="button" class="btn btn-default dropdown-toggle form-control" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">{{getDisplayName($index)}}<span class="caret right"></span></button>
+					<ul class="dropdown-menu">
+						<li ng-click="changeVal2('', '', $index)"><a href="">Static value</a></li>
+						<li role="separator" class="divider"></li>
+						<li ng-repeat="dependencie in dependenciesArr | orderBy: 'displayName'" value="{{dependencie.dbName}}" ng-click="changeVal2(dependencie.displayName, dependencie.dbName, $parent.$index)"><a href="">{{ dependencie.displayName}}</a></li>
+					</ul>
+				</div>
+				<span class="help-block" ng-if="errors.conditions[$index].val2">This field is required</span>
+			</div><!-- /input-group -->
+		</div><!-- /.col-xs-4 -->
+
+		<div class="col-xs-2 text-right">
+			<button class="btn btn-primary" ng-show="$index==expression.conditions.length-1" ng-click="addCondition()">Add Condition</button>
+		</div>
+	</div>
+	<div class="row">
+		<div class="col-xs-12" id="static-value-container" ng-if="condition.val2.parameterType!=undefined">
+			<integer json-input ng-if="condition.val1.parameterType=='integer'" parameter="staticValues[$index]['integer']" dependencies = "[]" validation="true"></integer>
+			<float json-input ng-if="condition.val1.parameterType=='float'" parameter="staticValues[$index]['float']" dependencies = "[]" validation="true"></float>
+			<datetime json-input ng-if="condition.val1.parameterType=='datetime'" parameter="staticValues[$index]['datetime']" dependencies = "[]" validation="true"></datetime>
+			<json-select json-input ng-if="condition.val1.parameterType=='select'" parameter="staticValues[$index]['select']" dependencies ="[]" validation="false"></json-select>
+		</div>
+	</div>
+	<div class="col-xs-10 and-col" ng-show="$index!=expression.conditions.length-1"><b>AND</b></div>
 </div>
+
+
+	<div class="row">
+		<div class="form-group col-xs-12" ng-class="{'has-error': errors.message==true}">
+			<textarea class="form-control" name="advertise" id="errorMSG" rows="5" placeholder="Error message" ng-model="expression.message"></textarea>
+			<span class="help-block" ng-if="errors.message==true">This field is required</span>
+		</div>
+	</div>
+</form>

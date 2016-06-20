@@ -1,24 +1,49 @@
-<div class="container">
-	<h3>Parameters list</h3>
-	<div class="border" ng-repeat="param in data.parameters track by $index">
-		<div class="col-xs-8">
-			<p><strong>{{param.displayName}}</strong></p>
+<div class="container" id="param-list-container">
+	<div ng-repeat="cat in data.parametersCategories" class="panel panel-default panel-list">
+		<div class="panel-heading cat-title">{{cat.name}}</div>
+		<div class="panel-body">
+		<div class="border" id="parameters-container" ng-repeat="param in data.parameters track by $index"  ng-if="param.parameterCategory===cat.value">
+			<div class="row vertical-align">
+				<div class="col-xs-4">
+					<p class="param-name"><strong>{{param.displayName}}</strong></p>
+				</div>
+				<div class="col-xs-8" id="params-buttons">
+					<input type="button" class="btn pull-right btn-list" value="Settings" ng-click="goToSetting($index)">
+					<input type="button" class="btn pull-right btn-list" value="Delete" ng-click="delParam($index)">
+				</div>
+			</div>
 		</div>
-		<div class="col-xs-4">
-			<input type="button" class="btn btn-primary" value="setting" ng-click="goToSetting($index)">
-			<input type="button" class="btn btn-danger" value="X" ng-click="delParam($index)">
+
+		<div class="border no-params" id="parameters-container">
+			<div class="row vertical-align">
+				<div class="col-xs-4">
+					<p class="param-name"><strong>No parameters in this category</strong></p>
+				</div>
+			</div>
 		</div>
-		<hr>
 	</div>
-	<input type="button" class="btn btn-primary" value="+" ng-click="addParam()">
-	<div ng-if="newParam == true" class="form-group" ng-class="{'has-error': wrongName == true || noName == true}">
-		<div class="col-xs-8">
-			<input type="text" placeholder="Enter a name..." ng-model="newParamName" class="form-control">
-		</div>
-		<div class="col-xs-4">
-			<input type="button" value="validate" ng-click="validNewParam(newParamName)" class="btn btn-default">
-		</div>
-		<span class="help-block" ng-if="wrongName == true">This name is already used.</span>
-		<span class="help-block" ng-if="noName == true">You have to enter a name.</span>
 	</div>
+	<div class="form-group row" ng-class="{'has-error': wrongName == true || noName == true}">
+		<div class="col-xs-10">
+			<input type="text" placeholder="Enter a name" ng-model="newParamName" class="form-control">
+			<span class="help-block" ng-if="wrongName == true">Name already in use</span>
+			<span class="help-block" ng-if="noName == true">The field is required</span>
+		</div>
+		<div class="col-xs-2">
+			<input type="button" class="btn btn-info pull-right" value="Add a parameter" ng-click="validNewParam(newParamName)">
+		</div>
+
+	</div>
+	<div class="form-group row" ng-class="{'has-error': wrongNameCat == true || noNameCat == true}">
+		<div class="col-xs-10">
+			<input type="text" placeholder="Enter a category name" ng-model="newCategory" class="form-control">
+			<span class="help-block" ng-if="wrongNameCat == true">Name already in use</span>
+			<span class="help-block" ng-if="noNameCat == true">The field is required</span>
+		</div>
+		<div class="col-xs-2">
+			<input type="button" class="btn btn-warning pull-right" value="Add a category" ng-click="addCategory(newCategory)">
+		</div>
+
+	</div>
+
 </div>

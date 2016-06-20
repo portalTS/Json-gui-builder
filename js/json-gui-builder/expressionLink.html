@@ -1,6 +1,29 @@
-
-
-<expression-list-dir curre-param="currentParam" 
-					 dependencies-arr="dependencies"	
-					 expressions="epressions">
-</expression-list-dir>
+<div class="container">
+	<div class="col-xs-12 title-container">
+		<button type="button" class="btn btn-danger back-button" ng-click="goBack()">Back</button>
+		<p class="title">{{currentParam.name}} validation expression</p>
+	</div>
+</div>
+<div class="container" id="generic-container">
+  <div class="row">
+		<div class="container">
+		 <div ng-repeat="expression in expressions track by $index">
+			 <expression dependencies-arr="dependenciesArr" expression="expression" evaluate="eval[$index]"></expression>
+			 <div class="row">
+				 <div class="col-xs-12">
+					 <input class="form-control btn btn-danger" type="button" value="Delete" ng-click="deleteExpression($index)">
+				 </div>
+			 </div>
+			 <hr>
+		 </div>
+		 <div class="row">
+			 <div class="col-xs-6">
+				 <input class="form-control btn btn-primary" type="button" value="Add expression" ng-click="addExpression()">
+			 </div>
+			 <div class="col-xs-6">
+				 <input class="form-control btn btn-success" type="button" value="Save" ng-click="saveExpressions()">
+			 </div>
+		 </div>
+		</div>
+  </div>
+</div>
